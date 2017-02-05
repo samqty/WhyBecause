@@ -11,8 +11,40 @@
 'use strict';
 
 const Alexa = require('alexa-sdk');
-const answer = [];
-const preanswer = [];
+const answers = [
+    ',The sky is very high',
+    ',Adam and Eve messed up',
+    ',We have faith in humanity',
+    ',The media is biased',
+    ',We think we know everything',
+    ',Everyone was sleeping',
+    'of Quantum fluctuation',
+    'of Global warming',
+    ',It is politically correct',
+    ',It is what it is',
+    ',It is the right thing',
+    ',It is a fact of life',
+    ',Weed is not legal',
+    'of Tradition',
+    ',There is no choice',
+    ',what goes around,comes around',
+    ',It is funny',
+    'of Evolution',
+    ',Life is not about winning, it\'s about surviving',
+    'of the same reason why water boils at 100 centigrade',
+    'of the same reason why we don\'t have tails',
+    'of the same reason why we wake up every morning',
+    'of the same reason why I chose to be a woman',
+    ',hmmm  <break time="1s"/>  I don\'t know'
+];
+const preanswers = ['That is because'
+,'Generally That is because'
+, 'Many People believe that is because'
+, 'Because'
+, 'Research has shown that it\'s because'
+,'Based on an extensive research from university of wacha ma call it,it\'s because'
+,'Based on survey done on 10000 individuals,it\'s because'
+,'Using deductive reasoning, that is because'];
 
 const GAME_NAME = 'WhyBecause'; 
 const GAME_STATES = {
@@ -22,11 +54,21 @@ const GAME_STATES = {
 };
 const APP_ID = undefined; // TODO replace with your app ID (OPTIONAL)
 
+function getRandomAnswer(){
+    //return 'That is because the sky is very very high';
+    //get random preanswer
+    const answerRandomIndex = Math.floor(Math.random() * answers.length);
+    const preanswerRandomIndex = Math.floor(Math.random() * preanswers.length);
+
+    return preanswers[preanswerRandomIndex]+" "+answers[answerRandomIndex];
+}
+
 const newSessionHandlers = {
     /**
      * Entry point. Start a new game on new session. Handle any setup logic here.
      */
     'NewSession': function () {
+       
         this.handler.state = GAME_STATES.START;
         if (this.event.request.type === 'LaunchRequest') {
             this.emitWithState('StartGame', true);
@@ -50,10 +92,10 @@ const startStateHandlers = createStateHandler(GAME_STATES.START, {
     'StartGame': function (newGame) {
         let speechOutput ='Ask me a question starting with Why';
         this.handler.state = GAME_STATES.QUESTION;
-        this.emit(':tell', speechOutput);
+        this.emit(':ask', speechOutput);
     },
      'WhyQuestionIntent': function () {
-        let speechOutput = 'That is because the sky is very high';
+        let speechOutput = getRandomAnswer();
         this.handler.state= GAME_STATES.QUESTION;
         this.emit(':tell',speechOutput);
     },
@@ -68,11 +110,15 @@ const startStateHandlers = createStateHandler(GAME_STATES.START, {
         const speechOutput = 'OK, Goodbye!';
         this.emit(':tell', speechOutput);
     },
+     'AMAZON.StopIntent': function () {
+        const speechOutput = 'I hope you find your reason, Good Bye!';
+        this.emit(':tell', speechOutput);
+    },
 });
 
-const triviaStateHandlers = createStateHandler(GAME_STATES.QUESTION, {
+const questionStateHandlers = createStateHandler(GAME_STATES.QUESTION, {
     'WhyQuestionIntent': function () {
-        let speechOutput = 'That is because the sky is very high, ask me antoher why question';
+        let speechOutput = getRandomAnswer();
         this.emit(':tell',speechOutput);
     },
     'AMAZON.HelpIntent': function () {
@@ -80,16 +126,16 @@ const triviaStateHandlers = createStateHandler(GAME_STATES.QUESTION, {
         this.emitWithState('helpTheUser', false);
     },
     'AMAZON.StopIntent': function () {
-        this.handler.state = GAME_STATES.HELP;
-        const speechOutput = 'Would you like to keep playing?';
-        this.emit(':ask', speechOutput, speechOutput);
+         const speechOutput = 'I hope you find your reason, Good Bye!';
+        this.emit(':tell', speechOutput);
     },
     'AMAZON.CancelIntent': function () {
-        this.emit(':tell', 'Ok, let\'s play again soon.');
+        const speechOutput = 'I hope you find your reason, Good Bye!';
+        this.emit(':tell', speechOutput);
     },
     'Unhandled': function () {
-        const speechOutput = '';
-        this.emit(':ask', speechOutput, speechOutput);
+         let speechOutput = 'I don\'t understand, but, '+getRandomAnswer();
+        this.emit(':tell',speechOutput);
     },
     'SessionEndedRequest': function () {
         const speechOutput = 'OK, Goodbye!';
@@ -99,12 +145,9 @@ const triviaStateHandlers = createStateHandler(GAME_STATES.QUESTION, {
 
 const helpStateHandlers = createStateHandler(GAME_STATES.HELP, {
     'helpTheUser': function (newGame) {
-        const askMessage = newGame ? 'Would you like to start playing?' : 'To repeat the last question, say, repeat. Would you like to keep playing?';
-        const speechOutput = `I will ask you ${GAME_LENGTH} multiple choice questions. Respond with the number of the answer. `
-            + `For example, say one, two, three, or four. To start a new game at any time, say, start game. ${askMessage}`;
-        const repromptText = `To give an answer to a question, respond with the number of the answer . ${askMessage}`;
-
-        this.emit(':ask', speechOutput, repromptText);
+         this.handler.state = GAME_STATES.QUESTION;
+         const askMessage ='this is your voice of reason, please go ahead and ask me a question beginning with, why?';
+        this.emit(':ask', askMessage);
     },
     'StartGame': function () {
         this.handler.state = GAME_STATES.START;
@@ -116,30 +159,17 @@ const helpStateHandlers = createStateHandler(GAME_STATES.HELP, {
     'AMAZON.HelpIntent': function () {
         this.emitWithState('helpTheUser', false);
     },
-    'AMAZON.YesIntent': function () {
-        if (this.attributes.speechOutput && this.attributes.repromptText) {
-            this.handler.state = GAME_STATES.TRIVIA;
-            this.emitWithState('AMAZON.RepeatIntent');
-        } else {
-            this.handler.state = GAME_STATES.START;
-            this.emitWithState('StartGame', false);
-        }
-    },
-    'AMAZON.NoIntent': function () {
-        const speechOutput = 'Ok, we\'ll play another time. Goodbye!';
+    'AMAZON.StopIntent': function () {
+          const speechOutput = 'I hope you find your reason, Good Bye!';
         this.emit(':tell', speechOutput);
     },
-    'AMAZON.StopIntent': function () {
-        const speechOutput = 'Would you like to keep playing?';
-        this.emit(':ask', speechOutput, speechOutput);
-    },
     'AMAZON.CancelIntent': function () {
-        this.handler.state = GAME_STATES.TRIVIA;
+        this.handler.state = GAME_STATES.QUESTION;
         this.emitWithState('AMAZON.RepeatIntent');
     },
     'Unhandled': function () {
-        const speechOutput = 'Say yes to continue, or no to end the game.';
-        this.emit(':ask', speechOutput, speechOutput);
+         let speechOutput = 'I don\'t understand, but, '+getRandomAnswer();
+        this.emit(':tell',speechOutput);
     },
     'SessionEndedRequest': function () {
         const speechOutput = 'OK, Goodbye!';
@@ -149,7 +179,7 @@ const helpStateHandlers = createStateHandler(GAME_STATES.HELP, {
 
 exports.handler = (event, context) => {
     const alexa = Alexa.handler(event, context);
-    alexa.registerHandlers(newSessionHandlers, startStateHandlers, triviaStateHandlers, helpStateHandlers);
+    alexa.registerHandlers(newSessionHandlers, startStateHandlers, questionStateHandlers,helpStateHandlers);
     alexa.APP_ID = APP_ID;
     alexa.execute();
 };
